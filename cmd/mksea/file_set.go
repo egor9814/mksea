@@ -49,12 +49,16 @@ func wildcardRegexp(pattern string) *regexp.Regexp {
 	result.Grow(len(pattern) * 2)
 	result.WriteByte('^')
 	for _, it := range pattern {
-		if it == '*' {
+		switch it {
+		case '*':
 			result.WriteByte('.')
 			result.WriteByte('*')
-		} else if it == '?' {
+		case '?':
 			result.WriteByte('.')
-		} else {
+		case '+', '|', '^', '$', '(', ')', '[', ']', '{', '}':
+			result.WriteByte('\\')
+			fallthrough
+		default:
 			result.WriteRune(it)
 		}
 	}
