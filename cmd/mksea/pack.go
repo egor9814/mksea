@@ -68,6 +68,11 @@ type Packer struct {
 }
 
 func (p *Packer) Pack() error {
+	if len(p.Platforms) == 0 {
+		var tp TargetPlatform
+		tp.FromString("")
+		p.Platforms = append(p.Platforms, tp)
+	}
 	defer func() {
 		if err := cleanup(); err != nil {
 			p.logf("cleanup failed: %v\n", err)
@@ -284,7 +289,7 @@ func (p *Packer) build() error {
 		if it.OsName() == "windows" {
 			baseName += ".exe"
 		}
-		p.logf("> [%d/%d] build for %s %s - %s...", i+1, l, it.OsName(), it.ArchName(), baseName)
+		p.logf("> [%d/%d] build %s...", i+1, l, baseName)
 		target := filepath.Join(workInstallerDir, baseName)
 		if err := buildFunc(pkg, target, it); err != nil {
 			return err
