@@ -85,6 +85,11 @@ func new_cli_app() *cli.App {
 					return nil
 				},
 			},
+			&cli.BoolFlag{
+				Name:    "silent",
+				Aliases: []string{"s"},
+				Usage:   "disable logging while unpacking",
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			if input.Env.MaxMem == 0 {
@@ -107,12 +112,24 @@ func new_cli_app() *cli.App {
 				return int(100.0 * float64(p.Current()) / float64(p.All()))
 			}
 
-			log.Println("[  0%] preparing...")
+			verboseMode := !ctx.Bool("silent")
+			logf := func(format string, args ...any) {
+				if verboseMode {
+					log.Printf(format, args...)
+				}
+			}
+			logln := func(args ...any) {
+				if verboseMode {
+					log.Println(args...)
+				}
+			}
+
+			logln("[  0%] preparing...")
 			for it, err := in.Next(); it != nil || err != nil; it, err = in.Next() {
 				if err != nil {
 					return fmt.Errorf("cannot go to next file: %v", err)
 				}
-				log.Printf(
+				logf(
 					"[%3d%%] unpacking \"%s\"...\n",
 					progress(),
 					filepath.FromSlash(it.Path),
@@ -129,7 +146,7 @@ func new_cli_app() *cli.App {
 
 				outFile.Close()
 			}
-			log.Println("[100%] done!")
+			logln("[100%] done!")
 			return nil
 		},
 	}
