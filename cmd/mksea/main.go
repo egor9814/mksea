@@ -19,7 +19,7 @@ func new_cli_app() *cli.App {
 	}
 	return &cli.App{
 		Name:                   "mksea",
-		Usage:                  "MaKe Self Extractable Archive",
+		Usage:                  "MaKe Self-Extractable Archive",
 		Version:                fmt.Sprintf("v%d.%d.%d%s", Version.Major, Version.Minor, Version.Patch, Version.Suffix),
 		UseShortOptionHandling: true,
 		Flags: []cli.Flag{

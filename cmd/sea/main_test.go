@@ -12,7 +12,7 @@ func TestMain(t *testing.T) {
 			t.Fatal(reason)
 		}
 	}()
-	run([]string{
+	new_cli_app().Run([]string{
 		os.Args[0],
 		"-o", "tempdir",
 	})
