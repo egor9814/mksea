@@ -90,6 +90,11 @@ func new_cli_app() *cli.App {
 				Aliases: []string{"s"},
 				Usage:   "disable logging while unpacking",
 			},
+			&cli.BoolFlag{
+				Name:    "list",
+				Aliases: []string{"l"},
+				Usage:   "print archive content",
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			if input.Env.MaxMem == 0 {
@@ -106,6 +111,19 @@ func new_cli_app() *cli.App {
 				return fmt.Errorf("cannot open sea file: %v", err)
 			}
 			defer in.Close()
+
+			if ctx.Bool("list") {
+				for it, err := in.Next(); it != nil || err != nil; it, err = in.Next() {
+					if err != nil {
+						return fmt.Errorf("cannot go to next file: %v", err)
+					}
+					fmt.Println(filepath.FromSlash(it.Path))
+					if _, err := io.Copy(io.Discard, it.Reader); err != nil {
+						return fmt.Errorf("cannot read file: %v", err)
+					}
+				}
+				return nil
+			}
 
 			progress := func() int {
 				p := in.Progress()
