@@ -21,8 +21,8 @@ type CompressLevel uint
 
 const (
 	CompressHigh CompressLevel = iota
-	CompressMid  CompressLevel = iota
-	CompressLow  CompressLevel = iota
+	CompressMid
+	CompressLow
 )
 
 func (l CompressLevel) ToZstdLevel() zstd.EncoderLevel {
