@@ -96,16 +96,15 @@ func new_cli_app() *cli.App {
 					return nil
 				},
 			},
-			// TODO: implement this
-			// &cli.BoolFlag{
-			// 	Name:    "gui",
-			// 	Aliases: []string{"g"},
-			// 	Usage:   "make installer gui (fyne-cross required)",
-			// 	Action: func(ctx *cli.Context, b bool) error {
-			// 		packer.Gui = b
-			// 		return nil
-			// 	},
-			// },
+			&cli.BoolFlag{
+				Name:    "gui",
+				Aliases: []string{"g"},
+				Usage:   "make installer gui (fyne-cross required)",
+				Action: func(ctx *cli.Context, b bool) error {
+					packer.Gui = b
+					return nil
+				},
+			},
 			&cli.BoolFlag{
 				Name:    "silent",
 				Aliases: []string{"s"},

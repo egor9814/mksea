@@ -20,6 +20,8 @@ func main() {
 
 	files := []string{
 		"cmd/sea/archive.go",
+		"cmd/sea/main_gui.go",
+		"cmd/sea/main_no_gui.go",
 		"cmd/sea/main.go",
 		"cmd/sea/version.go",
 		"common/errors.go",

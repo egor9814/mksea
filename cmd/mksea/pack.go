@@ -321,7 +321,6 @@ func (p *Packer) buildFyne(pkg, target string, platform TargetPlatform) error {
 		"fyne-cross",
 		platform.OsName(),
 		"-arch", platform.ArchName(),
-		"-release",
 		"-name", targetName,
 		"-app-id", "com.github.egor9814.mksea",
 		"-tags", "fyne_gui",

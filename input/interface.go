@@ -10,6 +10,7 @@ type File struct {
 type ProgressStatus interface {
 	Current() int64
 	All() int64
+	Chan() <-chan int64
 }
 
 type Interface interface {

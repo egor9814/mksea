@@ -1,5 +1,3 @@
-//go:build !tui && !gui && !dui
-
 package main
 
 import (
@@ -15,12 +13,15 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func new_cli_app() *cli.App {
+func init() {
 	if targetPath, err := os.Getwd(); err != nil {
 		log.Fatalf("cannot obtain work dir: %v", err)
 	} else {
 		output.Env.WorkDir = targetPath
 	}
+}
+
+func new_cli_app() *cli.App {
 	input.Env.MaxMem = 0
 	return &cli.App{
 		Usage:                  "Self-Extractable Archive",
@@ -171,6 +172,9 @@ func new_cli_app() *cli.App {
 }
 
 func main() {
+	if main_gui() {
+		return
+	}
 	if err := new_cli_app().Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
