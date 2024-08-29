@@ -2,7 +2,8 @@ package main
 
 import (
 	"bytes"
-	"log"
+	"errors"
+	"mksea/common"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,9 +16,9 @@ var workInstallerDir string
 
 var goPath, goCache, goTmp string
 
-func init() {
+func init_wd() error {
 	if wd, err := os.Getwd(); err != nil {
-		log.Fatalf("cannot obtain work dir: %v", err)
+		return common.NewContextError("cannot obtain work dir", err)
 	} else {
 		workDir = wd
 	}
@@ -26,7 +27,7 @@ func init() {
 	goCache = filepath.Join(workInstallerDir, ".cache")
 	goTmp = filepath.Join(workInstallerDir, ".tmp")
 	if err := os.MkdirAll(goTmp, 0755); err != nil {
-		log.Fatalf("cannot create go temp directory: %v", err)
+		return common.NewContextError("cannot create go temp directory", err)
 	}
 
 	found := false
@@ -44,6 +45,8 @@ func init() {
 		}
 	}
 	if !found {
-		log.Fatal("GOPATH not provided")
+		return errors.New("GOPATH not provided")
 	}
+
+	return nil
 }

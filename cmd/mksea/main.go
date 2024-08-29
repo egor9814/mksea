@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"mksea/common"
 	"mksea/output"
 	"os"
 	"strings"
@@ -116,13 +117,22 @@ func new_cli_app() *cli.App {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
+			defer func() {
+				if err := cleanup(); err != nil {
+					packer.logf("cleanup failed: %v\n", err)
+				}
+			}()
+			if err := init_wd(); err != nil {
+				return common.NewContextError("init work dir failed", err)
+			}
+
 			excludedFileSet := NewFileSet()
 			for _, it := range excludedFiles.Value() {
 				excludedFileSet.Resolve(it, nil)
 			}
 			includedFileSet := NewFileSet()
 			includeResolver := func(p string, _ fs.FileInfo) bool {
-				return !strings.HasPrefix(p, workInstallerDir) /* && !strings.HasPrefix(p, workOutputDir) */
+				return !strings.HasPrefix(p, workInstallerDir)
 			}
 			if ctx.Args().Len() == 0 {
 				includedFileSet.Resolve("*", includeResolver)

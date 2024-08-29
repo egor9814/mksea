@@ -18,29 +18,26 @@ func (s *FileSet) Resolve(p string, filter func(string, fs.FileInfo) bool) {
 	if !filepath.IsAbs(p) {
 		p = filepath.Join(workDir, p)
 	}
-	baseName := filepath.Base(p)
-	p = filepath.Dir(p)
-	if info, err := os.Stat(p); err != nil {
-		s.Resolve(p, filter)
-	} else if info.IsDir() {
-		pattern := wildcardRegexp(baseName)
-		filepath.Walk(p, func(path string, info fs.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if !info.IsDir() {
-				if filter != nil && !filter(path, info) {
-					return nil
-				}
-				if patternMatched(pattern, info.Name()) {
-					(*s)[path] = struct{}{}
-				}
-			}
-			return nil
-		})
-	} else {
-		(*s)[p] = struct{}{}
+	basepath := filepath.ToSlash(p)
+	for _, err := os.Stat(p); err != nil; _, err = os.Stat(p) {
+		p = filepath.Dir(p)
 	}
+	p = filepath.ToSlash(p)
+	pattern := wildcardRegexp(basepath)
+	filepath.Walk(p, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			if filter != nil && !filter(path, info) {
+				return nil
+			}
+			if patternMatched(pattern, filepath.ToSlash(path)) {
+				(*s)[path] = struct{}{}
+			}
+		}
+		return nil
+	})
 }
 
 func wildcardRegexp(pattern string) *regexp.Regexp {

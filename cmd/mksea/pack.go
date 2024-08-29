@@ -73,11 +73,6 @@ func (p *Packer) Pack() error {
 		tp.FromString("")
 		p.Platforms = append(p.Platforms, tp)
 	}
-	defer func() {
-		if err := cleanup(); err != nil {
-			p.logf("cleanup failed: %v\n", err)
-		}
-	}()
 	if err := p.archive(); err != nil {
 		return common.NewContextError("archive failed", err)
 	}
@@ -324,6 +319,7 @@ func (p *Packer) buildFyne(pkg, target string, platform TargetPlatform) error {
 		"-name", targetName,
 		"-app-id", "com.github.egor9814.mksea",
 		"-tags", "fyne_gui",
+		"-no-cache",
 		pkg,
 	)
 	cmd.Env = os.Environ()
