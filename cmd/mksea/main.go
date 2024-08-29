@@ -66,6 +66,8 @@ func new_cli_app() *cli.App {
 					return nil
 				},
 			},
+			common.NewPasswordFlag(&packer.Password),
+			common.NewPasswordFileFlag(&packer.Password),
 			&cli.BoolFlag{
 				Name:    "encrypt",
 				Aliases: []string{"e"},

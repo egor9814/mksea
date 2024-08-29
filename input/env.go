@@ -1,9 +1,10 @@
 package input
 
 var Env struct {
-	MaxMem    uint64
-	Decode    bool
-	DecodeKey []byte
+	MaxMem       uint64
+	Decode       bool
+	DecodeKey    []byte
+	PasswordTest []byte
 }
 
 func init() {

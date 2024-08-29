@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/md5"
 	"errors"
 	"fmt"
 	"io"
@@ -63,6 +64,7 @@ type Packer struct {
 	BaseName      string
 	Input         []string
 	Encrypt       bool
+	Password      []byte
 	Platforms     []TargetPlatform
 	Threads       int
 	Gui           bool
@@ -92,6 +94,9 @@ func (p *Packer) Pack() error {
 }
 
 func (p *Packer) archive() error {
+	if len(p.Password) > 0 {
+		p.Encrypt = true
+	}
 	if p.Encrypt {
 		if err := p.generateEncryptionKey(); err != nil {
 			return common.NewContextError("generating encryption key", err)
@@ -238,6 +243,41 @@ func init() {
 	}
 
 	if p.Encrypt {
+		if len(p.Password) > 0 {
+			testTemplate := []byte(common.PasswordTestTemplate())
+			j := 0
+			for i, it := range testTemplate {
+				testTemplate[i] = it ^ output.Env.EncoderKey[j]
+				j = (j + 1) % len(output.Env.EncoderKey)
+			}
+			if err := writeBytes("cmd/sea/password.dat", testTemplate); err != nil {
+				return common.NewContextError("password test file generation", err)
+			}
+			if err := write("cmd/sea/password_init.go", `package main
+
+import (
+	_ "embed"
+	"mksea/input"
+)
+
+//go:embed password.dat
+var passwordData []byte
+
+func init() {
+	input.Env.PasswordTest = passwordData
+}
+`); err != nil {
+				return common.NewContextError("password init generation", err)
+			}
+
+			passwordHash := md5.Sum(p.Password)
+			j = 0
+			for i, it := range output.Env.EncoderKey {
+				output.Env.EncoderKey[i] = it ^ passwordHash[j]
+				j = (j + 1) % len(passwordHash)
+			}
+		}
+
 		if err := writeBytes("cmd/sea/encoder.key", output.Env.EncoderKey); err != nil {
 			return err
 		}

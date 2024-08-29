@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ncruces/zenity"
 	"github.com/urfave/cli/v2"
 )
 
@@ -23,7 +24,8 @@ func init() {
 
 func new_cli_app() *cli.App {
 	input.Env.MaxMem = 0
-	return &cli.App{
+	var password []byte
+	app := &cli.App{
 		Usage:                  "Self-Extractable Archive",
 		Version:                fmt.Sprintf("v%d.%d.%d%s", Version.Major, Version.Minor, Version.Patch, Version.Suffix),
 		UseShortOptionHandling: true,
@@ -98,29 +100,35 @@ func new_cli_app() *cli.App {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
+			if err := testPassword(password); err == zenity.ErrCanceled {
+				return nil
+			} else if err != nil {
+				return err
+			}
+
 			if input.Env.MaxMem == 0 {
 				input.Env.MaxMem = 8 * 1024 * 1024 * 1024 // 8G by default
 			}
 
 			exe, exeOffset, err := archiveOffset()
 			if err != nil {
-				return fmt.Errorf("cannot obtain info from sea file: %v", err)
+				return common.NewContextError("cannot obtain info from sea file", err)
 			}
 
 			in, err := input.Open(exe, exeOffset)
 			if err != nil {
-				return fmt.Errorf("cannot open sea file: %v", err)
+				return common.NewContextError("cannot open sea file", err)
 			}
 			defer in.Close()
 
 			if ctx.Bool("list") {
 				for it, err := in.Next(); it != nil || err != nil; it, err = in.Next() {
 					if err != nil {
-						return fmt.Errorf("cannot go to next file: %v", err)
+						return common.NewContextError("cannot go to next file", err)
 					}
 					fmt.Println(filepath.FromSlash(it.Path))
 					if _, err := io.Copy(io.Discard, it.Reader); err != nil {
-						return fmt.Errorf("cannot read file: %v", err)
+						return common.NewContextError("cannot read file", err)
 					}
 				}
 				return nil
@@ -146,7 +154,7 @@ func new_cli_app() *cli.App {
 			logln("[  0%] preparing...")
 			for it, err := in.Next(); it != nil || err != nil; it, err = in.Next() {
 				if err != nil {
-					return fmt.Errorf("cannot go to next file: %v", err)
+					return common.NewContextError("cannot go to next file", err)
 				}
 				logf(
 					"[%3d%%] unpacking \"%s\"...\n",
@@ -155,12 +163,12 @@ func new_cli_app() *cli.App {
 				)
 				outFile, err := output.OpenRaw(it.Path, 0755)
 				if err != nil {
-					return fmt.Errorf("cannot open file for write: %v", err)
+					return common.NewContextError("cannot open file for write", err)
 				}
 
 				if _, err := io.Copy(outFile, it.Reader); err != nil {
 					outFile.Close()
-					return fmt.Errorf("cannot unpack file: %v", err)
+					return common.NewContextError("cannot unpack file", err)
 				}
 
 				outFile.Close()
@@ -169,6 +177,13 @@ func new_cli_app() *cli.App {
 			return nil
 		},
 	}
+	if len(input.Env.PasswordTest) > 0 {
+		app.Flags = append(app.Flags,
+			common.NewPasswordFlag(&password),
+			common.NewPasswordFileFlag(&password),
+		)
+	}
+	return app
 }
 
 func main() {
