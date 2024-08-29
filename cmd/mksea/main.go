@@ -78,7 +78,7 @@ func new_cli_app() *cli.App {
 			&cli.StringFlag{
 				Name:    "compress",
 				Aliases: []string{"c"},
-				Usage:   "set compress `LEVEL` (low, mid, high)",
+				Usage:   "set compress `LEVEL` (none, low, mid, high)",
 				Value:   "high",
 				Action: func(ctx *cli.Context, s string) error {
 					if !packer.CompressLevel.FromString(s) {

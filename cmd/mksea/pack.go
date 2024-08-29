@@ -23,6 +23,7 @@ const (
 	CompressHigh CompressLevel = iota
 	CompressMid
 	CompressLow
+	CompressNone
 )
 
 func (l CompressLevel) ToZstdLevel() zstd.EncoderLevel {
@@ -33,6 +34,8 @@ func (l CompressLevel) ToZstdLevel() zstd.EncoderLevel {
 		return zstd.SpeedBetterCompression
 	case CompressLow:
 		return zstd.SpeedDefault
+	case CompressNone:
+		return (zstd.EncoderLevel)(0)
 	default:
 		panic("unreachable")
 	}
@@ -46,6 +49,8 @@ func (l *CompressLevel) FromString(s string) bool {
 		*l = CompressMid
 	case "low":
 		*l = CompressLow
+	case "none":
+		*l = CompressNone
 	default:
 		return false
 	}
