@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mksea/common"
 	"mksea/input"
 	"mksea/output"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 
@@ -23,6 +25,7 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
+	"github.com/urfave/cli/v2"
 )
 
 type PagerControlButtons struct {
@@ -234,7 +237,7 @@ func UnpackWindow(a fyne.App) fyne.Window {
 		},
 	}
 
-	targetPath := output.Env.WorkDir
+	targetPath := filepath.Join(output.Env.WorkDir, metaInfo.Name)
 	unpackTargetPathSegment := &widget.TextSegment{
 		Text: targetPath,
 		Style: widget.RichTextStyle{
@@ -282,7 +285,7 @@ func UnpackWindow(a fyne.App) fyne.Window {
 		Title: "Unpack path",
 		Content: func(buttons *PagerControlButtons) fyne.CanvasObject {
 			path := widget.NewEntry()
-			path.Text = filepath.FromSlash(baseName)
+			path.Text = filepath.FromSlash(targetPath)
 			return container.NewVBox(
 				widget.NewLabel("Choose installation path:"),
 				path,
@@ -379,7 +382,7 @@ func UnpackWindow(a fyne.App) fyne.Window {
 		if err != nil {
 			return err
 		}
-		extractingProgressBar.Max = len(metaInfo.Files)
+		extractingProgressBar.Max = float64(len(metaInfo.Files))
 
 		go func() {
 			i := 0
@@ -494,10 +497,10 @@ func UnpackWindow(a fyne.App) fyne.Window {
 	p.PageChanged = func(oldIndex, newIndex int) {
 		if newIndex == 1 {
 			p.PrevButton.Disable()
-		} else if newIndex >= 5 {
+		} else if newIndex >= 4 {
 			p.PrevButton.Disable()
 			p.NextButton.Disable()
-			if newIndex == 5 {
+			if newIndex == 4 {
 				err := startSetup()
 				p.Next()
 				cancelBtn.Disable()
@@ -528,14 +531,76 @@ func UnpackWindow(a fyne.App) fyne.Window {
 	return w
 }
 
+func PasswordWindow(a fyne.App, onAccept func()) {
+	baseTitle := "Type Archive Password"
+	attemtsTitle := baseTitle + ". Attempts left: "
+
+	w := a.NewWindow(baseTitle)
+	w.Resize(fyne.NewSize(480, 60))
+
+	attempts := passwordAttempts
+	check := func(text string) {
+		if attempts == 0 {
+			a.Quit()
+		}
+		password := []byte(text)
+		if decodeEncoderKey(password) {
+			onAccept()
+			w.Close()
+			return
+		}
+		attempts--
+		w.SetTitle(attemtsTitle + strconv.Itoa(attempts))
+	}
+
+	entry := widget.NewPasswordEntry()
+	entry.OnSubmitted = func(s string) {
+		check(s)
+	}
+
+	w.SetContent(container.NewVBox(
+		widget.NewForm(
+			widget.NewFormItem(
+				"Password:",
+				entry,
+			),
+		),
+		container.NewHBox(
+			layout.NewSpacer(),
+			widget.NewButton("Ok", func() {
+				check(entry.Text)
+			}),
+			widget.NewButton("Cancel", a.Quit),
+		),
+	))
+
+	w.Show()
+}
+
 func run_gui() {
 	a := app.New()
-	UnpackWindow(a).ShowAndRun()
+	PasswordWindow(a, func() {
+		UnpackWindow(a).Show()
+	})
+	a.Run()
 }
 
 func main_gui() bool {
 	if len(os.Args) > 1 {
-		return false
+		var password []byte
+		passwordApp := &cli.App{
+			Usage: metaInfo.Name + " - Auto Unpacker",
+			Flags: []cli.Flag{
+				common.NewPasswordFlag(&password),
+				common.NewPasswordFileFlag(&password),
+			},
+		}
+		if err := passwordApp.Run(os.Args); err != nil {
+			log.Fatal(err)
+		}
+		if !decodeEncoderKey(password) {
+			log.Fatal(errInvPass)
+		}
 	}
 	run_gui()
 	return true

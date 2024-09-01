@@ -327,19 +327,45 @@ func init() {
 	return nil
 }
 
+func (p *Packer) lookupFyne() (name string, cross bool, err error) {
+	noFyne := false
+	if len(p.Platforms) == 1 {
+		if platform := p.Platforms[0]; platform.OsName() == runtime.GOOS && platform.ArchName() == runtime.GOARCH {
+			if name, err = exec.LookPath("fyne"); err == nil {
+				return
+			} else {
+				noFyne = true
+			}
+		}
+	}
+	if name, err = exec.LookPath("fyne-cross"); err == nil {
+		cross = true
+		return
+	}
+	if noFyne {
+		err = errors.New("fyne and fyne-cross not found")
+	} else {
+		err = errors.New("fyne-cross not found")
+	}
+	return
+}
+
 func (p *Packer) build() error {
 	var buildFunc func(string, string, TargetPlatform) error
 	if p.Gui {
-		if _, err := exec.LookPath("fyne-cross"); err != nil {
-			return errors.New("fyne-cross not found")
+		if name, isCross, err := p.lookupFyne(); err != nil {
+			return common.NewContextError("cannot build GUI", err)
+		} else if isCross {
+			buildFunc = p.buildFyneCross(name)
+		} else {
+			buildFunc = p.buildFyne(name)
 		}
-		buildFunc = p.buildFyne
 	} else {
 		buildFunc = p.buildCli
 	}
 	l := len(p.Platforms)
 	p.log("> building executables...")
-	pkg := filepath.ToSlash(filepath.Join(workInstallerDir, "cmd/sea"))
+	pkg := filepath.FromSlash("./cmd/sea")
 	for i, it := range p.Platforms {
 		baseName := fmt.Sprintf("%s_%s_%s", p.Meta.Name, it.OsName(), it.ArchName())
 		if it.OsName() == "windows" {
@@ -370,22 +396,39 @@ func (p *Packer) buildCli(pkg, target string, platform TargetPlatform) error {
 	return runCommand(cmd)
 }
 
-func (p *Packer) buildFyne(pkg, target string, platform TargetPlatform) error {
-	targetName := filepath.Base(target)
-	// TODO: icon
-	cmd := exec.Command(
-		"fyne-cross",
-		platform.OsName(),
-		"-arch", platform.ArchName(),
-		"-name", targetName,
-		"-app-id", "com.github.egor9814.mksea",
-		"-tags", "fyne_gui",
-		"-no-cache",
-		pkg,
-	)
-	cmd.Env = os.Environ()
-	cmd.Dir = workInstallerDir
-	return runCommand(cmd)
+func (p *Packer) buildFyne(fynePath string) func(string, string, TargetPlatform) error {
+	return func(pkg, target string, _ TargetPlatform) error {
+		cmd := exec.Command(
+			fynePath,
+			"build",
+			"-o", target,
+			"-tags", "fyne_gui",
+			pkg,
+		)
+		cmd.Env = os.Environ()
+		cmd.Dir = workInstallerDir
+		return runCommand(cmd)
+	}
+}
+
+func (p *Packer) buildFyneCross(fyneCrossPath string) func(string, string, TargetPlatform) error {
+	return func(pkg, target string, platform TargetPlatform) error {
+		targetName := filepath.Base(target)
+		// TODO: icon
+		cmd := exec.Command(
+			fyneCrossPath,
+			platform.OsName(),
+			"-arch", platform.ArchName(),
+			"-name", targetName,
+			"-app-id", "com.github.egor9814.mksea",
+			"-tags", "fyne_gui",
+			"-no-cache",
+			pkg,
+		)
+		cmd.Env = os.Environ()
+		cmd.Dir = workInstallerDir
+		return runCommand(cmd)
+	}
 }
 
 func (p *Packer) goMod() error {
