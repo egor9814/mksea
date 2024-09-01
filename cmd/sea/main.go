@@ -26,7 +26,7 @@ func new_cli_app() *cli.App {
 	input.Env.MaxMem = 0
 	var password []byte
 	app := &cli.App{
-		Usage:                  "Self-Extractable Archive",
+		Usage:                  metaInfo.Name + " - Self-Extractable Archive",
 		Version:                fmt.Sprintf("v%d.%d.%d%s", Version.Major, Version.Minor, Version.Patch, Version.Suffix),
 		UseShortOptionHandling: true,
 		Flags: []cli.Flag{
