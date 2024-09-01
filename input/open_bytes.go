@@ -8,5 +8,5 @@ func OpenBytes(data []byte) (Interface, error) {
 	if Env.Decode {
 		rc = newDecoderInput(rc, rc)
 	}
-	return newZstdInput(rc, rc, b.Progress())
+	return newZstdInput(rc, rc)
 }

@@ -7,9 +7,8 @@ import (
 )
 
 type tarInput struct {
-	reader   *tar.Reader
-	closer   io.Closer
-	progress ProgressStatus
+	reader *tar.Reader
+	closer io.Closer
 }
 
 type tarFileReader struct {
@@ -54,14 +53,9 @@ func (i *tarInput) Close() (err error) {
 	return
 }
 
-func (i *tarInput) Progress() ProgressStatus {
-	return i.progress
-}
-
-func newTarInput(r io.Reader, c io.Closer, p ProgressStatus) *tarInput {
+func newTarInput(r io.Reader, c io.Closer) *tarInput {
 	return &tarInput{
-		reader:   tar.NewReader(r),
-		closer:   c,
-		progress: p,
+		reader: tar.NewReader(r),
+		closer: c,
 	}
 }

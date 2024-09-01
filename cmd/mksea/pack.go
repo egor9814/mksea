@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/klauspost/compress/zstd"
 )
@@ -61,7 +62,6 @@ func (l *CompressLevel) FromString(s string) bool {
 type Packer struct {
 	CompressLevel CompressLevel
 	Output        string
-	BaseName      string
 	Input         []string
 	Encrypt       bool
 	Password      []byte
@@ -72,6 +72,7 @@ type Packer struct {
 
 	archiveName string
 	archiveSize int64
+	Meta        common.MetaInfo
 }
 
 func (p *Packer) Pack() error {
@@ -94,6 +95,10 @@ func (p *Packer) Pack() error {
 }
 
 func (p *Packer) archive() error {
+	if len(p.Meta.Name) == 0 {
+		p.Meta.Name = filepath.Base(workDir)
+	}
+
 	if len(p.Password) > 0 {
 		p.Encrypt = true
 	}
@@ -130,6 +135,7 @@ func (p *Packer) archive() error {
 	for i, it := range p.Input {
 		rel, _ := filepath.Rel(workDir, it)
 		p.logf("> [%d/%d] packing \"%s\"...", i+1, l, rel)
+		p.Meta.Append(filepath.ToSlash(it))
 		outFile, err := out.Next(it)
 		if err != nil {
 			errList.Append(
@@ -301,6 +307,19 @@ func init() {
 		}
 	}
 
+	if err := write("cmd/sea/meta_init.go", fmt.Sprintf(`package main
+
+	func init() {
+		metaInfo.Name = "%s"
+		metaInfo.Files = []string{"%s"}
+	}
+	`,
+		p.Meta.Name,
+		strings.Join(p.Meta.Files, `", "`),
+	)); err != nil {
+		return common.NewContextError("meta info", err)
+	}
+
 	if err := p.goMod(); err != nil {
 		return common.NewContextError("module initialization", err)
 	}
@@ -321,11 +340,8 @@ func (p *Packer) build() error {
 	l := len(p.Platforms)
 	p.log("> building executables...")
 	pkg := filepath.ToSlash(filepath.Join(workInstallerDir, "cmd/sea"))
-	if len(p.BaseName) == 0 {
-		p.BaseName = filepath.Base(workDir)
-	}
 	for i, it := range p.Platforms {
-		baseName := fmt.Sprintf("%s_%s_%s", p.BaseName, it.OsName(), it.ArchName())
+		baseName := fmt.Sprintf("%s_%s_%s", p.Meta.Name, it.OsName(), it.ArchName())
 		if it.OsName() == "windows" {
 			baseName += ".exe"
 		}

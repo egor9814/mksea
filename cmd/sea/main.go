@@ -106,6 +106,19 @@ func new_cli_app() *cli.App {
 				return err
 			}
 
+			l := len(metaInfo.Files)
+			if l == 0 {
+				fmt.Println("archive is empty")
+				return nil
+			}
+
+			if ctx.Bool("list") {
+				for i, it := range metaInfo.Files {
+					fmt.Printf("[%d/%d] %s\n", i+1, l, filepath.FromSlash(it))
+				}
+				return nil
+			}
+
 			if input.Env.MaxMem == 0 {
 				input.Env.MaxMem = 8 * 1024 * 1024 * 1024 // 8G by default
 			}
@@ -121,24 +134,6 @@ func new_cli_app() *cli.App {
 			}
 			defer in.Close()
 
-			if ctx.Bool("list") {
-				for it, err := in.Next(); it != nil || err != nil; it, err = in.Next() {
-					if err != nil {
-						return common.NewContextError("cannot go to next file", err)
-					}
-					fmt.Println(filepath.FromSlash(it.Path))
-					if _, err := io.Copy(io.Discard, it.Reader); err != nil {
-						return common.NewContextError("cannot read file", err)
-					}
-				}
-				return nil
-			}
-
-			progress := func() int {
-				p := in.Progress()
-				return int(100.0 * float64(p.Current()) / float64(p.All()))
-			}
-
 			verboseMode := !ctx.Bool("silent")
 			logf := func(format string, args ...any) {
 				if verboseMode {
@@ -151,14 +146,16 @@ func new_cli_app() *cli.App {
 				}
 			}
 
-			logln("[  0%] preparing...")
+			i := 0
 			for it, err := in.Next(); it != nil || err != nil; it, err = in.Next() {
 				if err != nil {
 					return common.NewContextError("cannot go to next file", err)
 				}
+				i++
 				logf(
-					"[%3d%%] unpacking \"%s\"...\n",
-					progress(),
+					"[%d/%d] unpacking \"%s\"...\n",
+					i,
+					l,
 					filepath.FromSlash(it.Path),
 				)
 				outFile, err := output.OpenRaw(it.Path, 0755)
@@ -173,7 +170,7 @@ func new_cli_app() *cli.App {
 
 				outFile.Close()
 			}
-			logln("[100%] done!")
+			logln("done!")
 			return nil
 		},
 	}

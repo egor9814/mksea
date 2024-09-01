@@ -6,7 +6,7 @@ import (
 	"github.com/klauspost/compress/zstd"
 )
 
-func newZstdInput(r io.Reader, c io.Closer, p ProgressStatus) (Interface, error) {
+func newZstdInput(r io.Reader, c io.Closer) (Interface, error) {
 	z, err := zstd.NewReader(
 		r,
 		zstd.WithDecoderConcurrency(0),
@@ -16,6 +16,6 @@ func newZstdInput(r io.Reader, c io.Closer, p ProgressStatus) (Interface, error)
 	if err != nil {
 		return nil, err
 	}
-	t := newTarInput(z, c, p)
+	t := newTarInput(z, c)
 	return t, nil
 }

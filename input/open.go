@@ -13,5 +13,5 @@ func Open(name string, offset int64) (Interface, error) {
 	if Env.Decode {
 		rc = newDecoderInput(rc, rc)
 	}
-	return newZstdInput(rc, rc, raw.Progress())
+	return newZstdInput(rc, rc)
 }

@@ -7,17 +7,12 @@ import (
 )
 
 type rawInput struct {
-	f        *os.File
-	size     int64
-	read     int64
-	progress chan int64
+	f    *os.File
+	size int64
+	read int64
 }
 
 func (i *rawInput) Close() (err error) {
-	if i.progress != nil {
-		close(i.progress)
-		i.progress = nil
-	}
 	if i.f != nil {
 		err = i.f.Close()
 		i.f = nil
@@ -32,29 +27,7 @@ func (i *rawInput) Read(b []byte) (n int, err error) {
 	}
 	n, err = i.f.Read(b)
 	i.read += int64(n)
-	if i.progress != nil {
-		i.progress <- i.read
-	}
 	return
-}
-
-func (i *rawInput) Progress() ProgressStatus {
-	return i
-}
-
-func (i *rawInput) Current() int64 {
-	return i.read
-}
-
-func (i *rawInput) All() int64 {
-	return i.size
-}
-
-func (i *rawInput) Chan() <-chan int64 {
-	if i.progress == nil {
-		i.progress = make(chan int64)
-	}
-	return i.progress
 }
 
 func (i *rawInput) open(name string, offset int64) (err error) {

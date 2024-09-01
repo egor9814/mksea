@@ -145,7 +145,7 @@ func (p *Pager) Prev() {
 }
 
 func UnpackWindow(a fyne.App) fyne.Window {
-	baseName := filepath.Base(os.Args[0])
+	baseName := metaInfo.Name
 
 	w := a.NewWindow(fmt.Sprintf("%s Auto Unpacker", baseName))
 	w.SetMaster()
@@ -379,15 +379,10 @@ func UnpackWindow(a fyne.App) fyne.Window {
 		if err != nil {
 			return err
 		}
-		extractingProgressBar.Max = float64(in.Progress().All())
+		extractingProgressBar.Max = len(metaInfo.Files)
 
 		go func() {
-			for it := range in.Progress().Chan() {
-				extractingProgress.Set(float64(it))
-			}
-		}()
-
-		go func() {
+			i := 0
 			for {
 				setupMtx.Lock()
 				c := setupCancel
@@ -400,6 +395,8 @@ func UnpackWindow(a fyne.App) fyne.Window {
 					time.Sleep(time.Second)
 					continue
 				}
+				i++
+				extractingProgress.Set(float64(i))
 				it, err := in.Next()
 				if err != nil {
 					in.Close()

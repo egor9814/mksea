@@ -29,7 +29,7 @@ func new_cli_app() *cli.App {
 				Aliases: []string{"n"},
 				Usage:   "base `NAME` of output executable",
 				Action: func(ctx *cli.Context, s string) error {
-					packer.BaseName = s
+					packer.Meta.Name = s
 					return nil
 				},
 			},
