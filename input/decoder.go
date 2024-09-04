@@ -2,13 +2,13 @@ package input
 
 import (
 	"io"
+	"mksea/crypto"
 	"os"
 )
 
 type decoderInput struct {
-	reader io.Reader
+	reader *crypto.XorReader
 	closer io.Closer
-	index  int
 }
 
 func (i *decoderInput) Read(b []byte) (n int, err error) {
@@ -16,10 +16,6 @@ func (i *decoderInput) Read(b []byte) (n int, err error) {
 		return 0, os.ErrClosed
 	}
 	n, err = i.reader.Read(b)
-	for j, it := range b[:n] {
-		b[j] = it ^ Env.DecodeKey[i.index]
-		i.index = (i.index + 1) % len(Env.DecodeKey)
-	}
 	return
 }
 
@@ -34,7 +30,7 @@ func (i *decoderInput) Close() (err error) {
 
 func newDecoderInput(r io.Reader, c io.Closer) *decoderInput {
 	return &decoderInput{
-		reader: r,
+		reader: crypto.NewXorReader(r, Env.DecodeKey),
 		closer: c,
 	}
 }

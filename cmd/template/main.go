@@ -29,6 +29,7 @@ func main() {
 		"common/errors.go",
 		"common/meta.go",
 		"common/password.go",
+		"crypto/xor.go",
 		"input/decoder.go",
 		"input/env.go",
 		"input/interface.go",
