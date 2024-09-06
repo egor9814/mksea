@@ -26,3 +26,5 @@ go.work.sum
 
 # ignore auto-generated sea template archive
 cmd/mksea/template.tar.zst
+# ignore auto-generated version info
+cmd/mksea/version_init.go
