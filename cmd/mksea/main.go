@@ -52,7 +52,7 @@ func new_cli_app() *cli.App {
 			&cli.StringSliceFlag{
 				Name:    "platform",
 				Aliases: []string{"p"},
-				Usage:   "target `PLATFROM`",
+				Usage:   "add target `PLATFROM`",
 				Action: func(ctx *cli.Context, s []string) error {
 					var platform TargetPlatform
 					for _, it := range s {
