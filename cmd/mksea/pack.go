@@ -14,7 +14,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	"github.com/klauspost/compress/zstd"
 )
@@ -135,7 +134,7 @@ func (p *Packer) archive() error {
 	for i, it := range p.Input {
 		rel, _ := filepath.Rel(workDir, it)
 		p.logf("> [%d/%d] packing \"%s\"...", i+1, l, rel)
-		p.Meta.Append(filepath.ToSlash(it))
+		p.Meta.Append(filepath.ToSlash(rel))
 		outFile, err := out.Next(it)
 		if err != nil {
 			errList.Append(
@@ -248,7 +247,22 @@ func init() {
 		return common.NewContextError("version generating", err)
 	}
 
+	makeMeta := func(key []byte) error {
+		if data, err := p.Meta.Encode(key); err != nil {
+			return err
+		} else {
+			if err := writeBytes("cmd/sea/meta.dat", data); err != nil {
+				return common.NewContextError("meta info", err)
+			}
+		}
+		return nil
+	}
+
 	if p.Encrypt {
+		if err := makeMeta(output.Env.EncoderKey); err != nil {
+			return err
+		}
+
 		if len(p.Password) > 0 {
 			testTemplate := []byte(common.PasswordTestTemplate())
 			j := 0
@@ -305,19 +319,10 @@ func init() {
 `); err != nil {
 			return common.NewContextError("decoder generating", err)
 		}
-	}
-
-	if err := write("cmd/sea/meta_init.go", fmt.Sprintf(`package main
-
-	func init() {
-		metaInfo.Name = "%s"
-		metaInfo.Files = []string{"%s"}
-	}
-	`,
-		p.Meta.Name,
-		strings.Join(p.Meta.Files, `", "`),
-	)); err != nil {
-		return common.NewContextError("meta info", err)
+	} else {
+		if err := makeMeta(nil); err != nil {
+			return err
+		}
 	}
 
 	if err := p.goMod(); err != nil {

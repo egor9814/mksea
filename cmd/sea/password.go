@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"mksea/common"
+	"mksea/crypto"
 	"mksea/input"
 	"os"
 	"strconv"
@@ -23,19 +24,21 @@ func decodeEncoderKey(password []byte) bool {
 		return false
 	}
 	passwordHash := md5.Sum(password)
-	j, k := 0, 0
+	passwordReader := crypto.NewXorKeyReader(passwordHash[:])
+	k := 0
 	for i, it := range input.Env.PasswordTest {
-		actual := it ^ passwordHash[j] ^ input.Env.DecodeKey[k]
+		actual := it ^ passwordReader.Next() ^ input.Env.DecodeKey[k]
 		if actual != expected[i] {
 			return false
 		}
-		j = (j + 1) % len(passwordHash)
 		k = (k + 1) % len(input.Env.DecodeKey)
 	}
-	j = 0
+	passwordReader.ResetPosition()
 	for i, it := range input.Env.DecodeKey {
-		input.Env.DecodeKey[i] = it ^ passwordHash[j]
-		j = (j + 1) % len(passwordHash)
+		input.Env.DecodeKey[i] = it ^ passwordReader.Next()
+	}
+	if err := metaInfo.Decode(metaData, input.Env.DecodeKey); err != nil {
+		panic(common.NewContextError("unreachable state", err))
 	}
 	return true
 }
