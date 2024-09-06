@@ -13,5 +13,14 @@ func Open(name string, offset int64) (Interface, error) {
 	if Env.Decode {
 		rc = newDecoderInput(rc, rc)
 	}
-	return newZstdInput(rc, rc)
+	switch Env.ArchiveFormat {
+	case ArchiveNone:
+		return newTarInput(rc, rc), nil
+	case ArchiveZstd:
+		return newZstdInput(rc, rc)
+	case ArchiveXz:
+		return newXzInput(rc, rc)
+	default:
+		panic("unreachable")
+	}
 }

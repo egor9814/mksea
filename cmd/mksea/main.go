@@ -16,7 +16,8 @@ import (
 func new_cli_app() *cli.App {
 	var excludedFiles cli.StringSlice
 	packer := Packer{
-		Platforms: make([]TargetPlatform, 0, 2),
+		CompressFormat: CompressZstdHigh,
+		Platforms:      make([]TargetPlatform, 0, 2),
 	}
 	return &cli.App{
 		Name:                   "mksea",
@@ -78,24 +79,42 @@ func new_cli_app() *cli.App {
 				},
 			},
 			&cli.StringFlag{
-				Name:    "compress",
-				Aliases: []string{"c"},
-				Usage:   "set compress `LEVEL` (none, low, mid, high)",
+				Name:    "compress-zstd",
+				Aliases: []string{"z"},
+				Usage:   "set compress `LEVEL` for zstd algorythm (low, mid, high)",
 				Value:   "high",
 				Action: func(ctx *cli.Context, s string) error {
-					if !packer.CompressLevel.FromString(s) {
+					if !packer.CompressFormat.ZstdFromString(s) {
 						return fmt.Errorf("unsupported compress level %q", s)
 					}
 					return nil
 				},
 			},
+			&cli.BoolFlag{
+				Name:    "compress-xz",
+				Aliases: []string{"xz"},
+				Usage:   "set compress `LEVEL` for zstd algorythm (low, mid, high)",
+				Action: func(ctx *cli.Context, b bool) error {
+					packer.CompressFormat = CompressXz
+					return nil
+				},
+			},
+			&cli.BoolFlag{
+				Name:    "no-compress",
+				Aliases: []string{"nc"},
+				Usage:   "disable compressing",
+				Action: func(ctx *cli.Context, b bool) error {
+					packer.CompressFormat = CompressNone
+					return nil
+				},
+			},
 			&cli.Uint64Flag{
-				Name:    "threads",
-				Aliases: []string{"t"},
-				Usage:   "set threads `COUNT` (0 means count of cores)",
+				Name:    "zstd-threads",
+				Aliases: []string{"zt"},
+				Usage:   "set threads `COUNT` for zstd algorythm (0 means count of cores)",
 				Value:   0,
 				Action: func(ctx *cli.Context, u uint64) error {
-					packer.Threads = int(u)
+					packer.ZstdThreads = int(u)
 					return nil
 				},
 			},

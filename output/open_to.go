@@ -2,8 +2,6 @@ package output
 
 import (
 	"io"
-
-	"github.com/klauspost/compress/zstd"
 )
 
 func OpenTo(wc io.WriteCloser) (Interface, error) {
@@ -16,8 +14,11 @@ func OpenTo2(w io.Writer, c io.Closer) (Interface, error) {
 		w = wc
 		c = wc
 	}
-	if Env.EncoderLevel == (zstd.EncoderLevel)(0) {
-		return newTarOutput(w, c), nil
+	if Env.XzEncode {
+		return newXzOutput(w, c)
 	}
-	return newZstdOutput(w, c)
+	if Env.ZstdEncoderLevel != ZstdEncoderLevelNone {
+		return newZstdOutput(w, c)
+	}
+	return newTarOutput(w, c), nil
 }

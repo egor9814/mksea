@@ -9,6 +9,7 @@ import (
 	"log"
 	"math/rand"
 	"mksea/common"
+	"mksea/input"
 	"mksea/output"
 	"os"
 	"os/exec"
@@ -18,56 +19,85 @@ import (
 	"github.com/klauspost/compress/zstd"
 )
 
-type CompressLevel uint
+type CompressFormat uint
 
 const (
-	CompressHigh CompressLevel = iota
-	CompressMid
-	CompressLow
-	CompressNone
+	CompressNone CompressFormat = iota
+	CompressZstdHigh
+	CompressZstdMid
+	CompressZstdLow
+	CompressXz
 )
 
-func (l CompressLevel) ToZstdLevel() zstd.EncoderLevel {
-	switch l {
-	case CompressHigh:
+func (f CompressFormat) ToZstdLevel() zstd.EncoderLevel {
+	switch f {
+	case CompressZstdHigh:
 		return zstd.SpeedBestCompression
-	case CompressMid:
+	case CompressZstdMid:
 		return zstd.SpeedBetterCompression
-	case CompressLow:
+	case CompressZstdLow:
 		return zstd.SpeedDefault
 	case CompressNone:
-		return (zstd.EncoderLevel)(0)
+		return output.ZstdEncoderLevelNone
 	default:
 		panic("unreachable")
 	}
 }
 
-func (l *CompressLevel) FromString(s string) bool {
+func (f CompressFormat) IsNone() bool {
+	return f == CompressNone
+}
+
+func (f CompressFormat) IsZstd() bool {
+	switch f {
+	case CompressZstdHigh, CompressZstdMid, CompressZstdLow:
+		return true
+	default:
+		return false
+	}
+}
+
+func (f CompressFormat) IsXz() bool {
+	return f == CompressXz
+}
+
+func (f *CompressFormat) ZstdFromString(s string) bool {
 	switch s {
 	case "high":
-		*l = CompressHigh
+		*f = CompressZstdHigh
 	case "mid":
-		*l = CompressMid
+		*f = CompressZstdMid
 	case "low":
-		*l = CompressLow
-	case "none":
-		*l = CompressNone
+		*f = CompressZstdLow
 	default:
 		return false
 	}
 	return true
 }
 
+func (f CompressFormat) ToArchiveFormat() input.ArchiveFormat {
+	if f.IsNone() {
+		return input.ArchiveNone
+	}
+	if f.IsZstd() {
+		return input.ArchiveZstd
+	}
+	if f.IsXz() {
+		return input.ArchiveXz
+	}
+	panic("unreachable")
+}
+
 type Packer struct {
-	CompressLevel CompressLevel
-	Output        string
-	Input         []string
-	Encrypt       bool
-	Password      []byte
-	Platforms     []TargetPlatform
-	Threads       int
-	Gui           bool
-	Silent        bool
+	CompressFormat CompressFormat
+	Output         string
+	Input          []string
+	Encrypt        bool
+	Password       []byte
+	Platforms      []TargetPlatform
+	ZstdThreads    int
+	Gui            bool
+	Silent         bool
 
 	archiveName string
 	archiveSize int64
@@ -107,11 +137,15 @@ func (p *Packer) archive() error {
 		}
 	}
 
-	output.Env.EncoderLevel = p.CompressLevel.ToZstdLevel()
-	if p.Threads == 0 {
-		output.Env.EncoderThreads = runtime.NumCPU()
-	} else {
-		output.Env.EncoderThreads = p.Threads
+	if p.CompressFormat.IsZstd() {
+		output.Env.ZstdEncoderLevel = p.CompressFormat.ToZstdLevel()
+		if p.ZstdThreads == 0 {
+			output.Env.ZstdEncoderThreads = runtime.NumCPU()
+		} else {
+			output.Env.ZstdEncoderThreads = p.ZstdThreads
+		}
+	} else if p.CompressFormat.IsXz() {
+		output.Env.XzEncode = true
 	}
 
 	archiveName := "archive.dat"
@@ -228,10 +262,13 @@ func (p *Packer) generate() error {
 
 	if err := write("cmd/sea/archive_init.go", fmt.Sprintf(`package main
 
+import "mksea/input"
+
 func init() {
 	archiveSize = %d
+	input.Env.ArchiveFormat = input.%s
 }
-`, p.archiveSize)); err != nil {
+`, p.archiveSize, p.CompressFormat.ToArchiveFormat().Name())); err != nil {
 		return common.NewContextError("archive info generating", err)
 	}
 

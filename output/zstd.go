@@ -32,8 +32,8 @@ func (c *zstdCloser) Close() (err error) {
 func newZstdOutput(w io.Writer, c io.Closer) (Interface, error) {
 	z, err := zstd.NewWriter(
 		w,
-		zstd.WithEncoderLevel(Env.EncoderLevel),
-		zstd.WithEncoderConcurrency(Env.EncoderThreads),
+		zstd.WithEncoderLevel(Env.ZstdEncoderLevel),
+		zstd.WithEncoderConcurrency(Env.ZstdEncoderThreads),
 	)
 	if err != nil {
 		return nil, err

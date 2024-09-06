@@ -46,6 +46,7 @@ require (
 )
 
 require (
+	github.com/ulikunitz/xz v0.5.12
 	github.com/urfave/cli/v2 v2.27.4
 	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect

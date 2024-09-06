@@ -30,20 +30,22 @@ func main() {
 		"common/meta.go",
 		"common/password.go",
 		"crypto/xor.go",
+		"input/const.go",
 		"input/decoder.go",
 		"input/env.go",
 		"input/interface.go",
 		"input/open.go",
 		"input/raw_input.go",
 		"input/tar_input.go",
+		"input/xz.go",
 		"input/zstd.go",
 		"output/env.go",
 		"output/open_raw.go",
 		"output/raw_output.go",
 	}
 
-	output.Env.EncoderThreads = 1
-	output.Env.EncoderLevel = zstd.SpeedBestCompression
+	output.Env.ZstdEncoderThreads = 1
+	output.Env.ZstdEncoderLevel = zstd.SpeedBestCompression
 
 	out, err := output.Open(name, 0644)
 	if err != nil {

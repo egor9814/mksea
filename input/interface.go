@@ -2,6 +2,8 @@ package input
 
 import "io"
 
+type ArchiveFormat uint
+
 type File struct {
 	Path   string
 	Reader io.Reader
