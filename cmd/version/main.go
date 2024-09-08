@@ -12,8 +12,49 @@ import (
 	"strings"
 )
 
+var wd string
+
+func init() {
+	var err error
+	wd, err = os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func git(args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = wd
+
+	var out, errOut bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &errOut
+
+	err := cmd.Run()
+	s := out.String()
+	if err != nil {
+		return "", fmt.Errorf("%v\noutput:\n%s%s", err, s, errOut.String())
+	}
+
+	return strings.TrimSpace(s), nil
+}
+
+func branchName() (string, error) {
+	s, err := git("branch", "--no-color", "--show-current")
+	if err != nil {
+		return "", err
+	}
+	if len(s) == 0 {
+		s = "untracked"
+	} else {
+		s = "dev-" + s
+	}
+	return s, nil
+}
+
 func parseVersion(s string) (major int, minor int, patch int, suffix string, err error) {
 	if len(s) == 0 {
+		suffix, err = branchName()
 		return
 	}
 	if s[0] == 'v' {
@@ -45,11 +86,15 @@ func parseVersion(s string) (major int, minor int, patch int, suffix string, err
 	return
 }
 
-func main() {
-	wd, err := os.Getwd()
+func getVersion() (int, int, int, string, error) {
+	s, err := git("tag", "--points-at", "HEAD")
 	if err != nil {
 		log.Fatal(err)
 	}
+	return parseVersion(s)
+}
+
+func main() {
 	file := filepath.Join(wd, "version_init.go")
 	content := `package main
 
@@ -61,24 +106,16 @@ func init() {
 }
 `
 
-	cmd := exec.Command("git", "tag", "--points-at", "HEAD")
-	cmd.Dir = wd
-
-	var out bytes.Buffer
-	cmd.Stdout = &out
-
-	err = cmd.Run()
-	if err != nil {
-		log.Fatalf("%v\noutput:\n%s", err, out.String())
-	}
-
-	major, minor, patch, suffix, err := parseVersion(out.String())
+	major, minor, patch, suffix, err := getVersion()
 	if err != nil {
 		log.Fatal(err)
 	}
+	if len(suffix) > 0 {
+		suffix = "-" + suffix
+	}
 	content = fmt.Sprintf(content, major, minor, patch, suffix)
 
-	err = os.WriteFile(file, []byte(content), 0444)
+	err = os.WriteFile(file, []byte(content), 0655)
 	if err != nil {
 		log.Fatal(err)
 	}
