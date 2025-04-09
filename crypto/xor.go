@@ -79,6 +79,7 @@ func (w *XorWriter) Write(p []byte) (n int, err error) {
 		return
 	}
 	if w.k.IsValid() {
+		// TODO: buffer
 		b := make([]byte, len(p))
 		for i, it := range p {
 			b[i] = it ^ w.k.Next()

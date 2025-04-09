@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	"bufio"
@@ -15,10 +15,10 @@ import (
 	"github.com/ncruces/zenity"
 )
 
-var errInvPass = errors.New("incorrect password")
-var passwordAttempts = 5
+var ErrInvPass = errors.New("incorrect password")
+var PasswordAttempts = 5
 
-func decodeEncoderKey(password []byte) bool {
+func DecodeEncoderKey(password []byte) bool {
 	expected := []byte(common.PasswordTestTemplate())
 	if len(expected) != len(input.Env.PasswordTest) {
 		return false
@@ -44,9 +44,9 @@ func decodeEncoderKey(password []byte) bool {
 }
 
 func zenityPassword() error {
-	for i := passwordAttempts; i > 0; i-- {
+	for i := PasswordAttempts; i > 0; i-- {
 		title := "Type archive password"
-		if i != passwordAttempts {
+		if i != PasswordAttempts {
 			title += ". Attempts left: " + strconv.Itoa(i)
 		}
 		_, p, err := zenity.Password(
@@ -58,32 +58,32 @@ func zenityPassword() error {
 		if err != nil {
 			return err
 		}
-		if decodeEncoderKey([]byte(p)) {
+		if DecodeEncoderKey([]byte(p)) {
 			return nil
 		}
 	}
-	return errInvPass
+	return ErrInvPass
 }
 
 func scanPassword() error {
 	reader := bufio.NewReader(os.Stdin)
-	for i := passwordAttempts; i > 0; i-- {
+	for i := PasswordAttempts; i > 0; i-- {
 		title := "type archive password"
-		if i != passwordAttempts {
+		if i != PasswordAttempts {
 			title += " (attempts left: " + strconv.Itoa(i) + ")"
 		}
 		title += "> "
 		fmt.Print(title)
 		if text, err := reader.ReadString('\n'); err != nil {
 			return common.NewContextError("cannot read password from terminal", err)
-		} else if decodeEncoderKey([]byte(strings.TrimSpace(text))) {
+		} else if DecodeEncoderKey([]byte(strings.TrimSpace(text))) {
 			return nil
 		}
 	}
-	return errInvPass
+	return ErrInvPass
 }
 
-func testPassword(password []byte) error {
+func TestPassword(password []byte) error {
 	if len(input.Env.PasswordTest) == 0 {
 		return nil
 	}
@@ -93,8 +93,8 @@ func testPassword(password []byte) error {
 		}
 		return scanPassword()
 	}
-	if !decodeEncoderKey(password) {
-		return errInvPass
+	if !DecodeEncoderKey(password) {
+		return ErrInvPass
 	}
 	return nil
 }

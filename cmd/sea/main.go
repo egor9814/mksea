@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	internal_common "mksea/cmd/sea/internal/common"
 	"mksea/common"
 	"mksea/input"
 	"mksea/output"
@@ -25,6 +26,7 @@ func init() {
 func new_cli_app() *cli.App {
 	input.Env.MaxMem = 0
 	var password []byte
+	metaInfo := internal_common.MetaInfo()
 	app := &cli.App{
 		Usage:                  metaInfo.Name + " - Self-Extractable Archive",
 		Version:                fmt.Sprintf("v%d.%d.%d%s", Version.Major, Version.Minor, Version.Patch, Version.Suffix),
@@ -100,7 +102,7 @@ func new_cli_app() *cli.App {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
-			if err := testPassword(password); err == zenity.ErrCanceled {
+			if err := internal_common.TestPassword(password); err == zenity.ErrCanceled {
 				return nil
 			} else if err != nil {
 				return err
@@ -184,7 +186,7 @@ func new_cli_app() *cli.App {
 }
 
 func main() {
-	if main_gui() {
+	if main_tui() {
 		return
 	}
 	if err := new_cli_app().Run(os.Args); err != nil {

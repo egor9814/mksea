@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	_ "embed"
@@ -9,3 +9,7 @@ var metaInfo common.MetaInfo
 
 //go:embed meta.dat
 var metaData []byte
+
+func MetaInfo() common.MetaInfo {
+	return metaInfo
+}

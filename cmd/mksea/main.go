@@ -52,7 +52,7 @@ func new_cli_app() *cli.App {
 			&cli.StringSliceFlag{
 				Name:    "platform",
 				Aliases: []string{"p"},
-				Usage:   "add target `PLATFROM`",
+				Usage:   "add target `PLATFROM` (ex. windows/amd64, linux/arm)",
 				Action: func(ctx *cli.Context, s []string) error {
 					var platform TargetPlatform
 					for _, it := range s {
@@ -93,7 +93,7 @@ func new_cli_app() *cli.App {
 			&cli.BoolFlag{
 				Name:    "compress-xz",
 				Aliases: []string{"xz"},
-				Usage:   "set compress `LEVEL` for zstd algorythm (low, mid, high)",
+				Usage:   "set xz compress algorythm",
 				Action: func(ctx *cli.Context, b bool) error {
 					packer.CompressFormat = CompressXz
 					return nil
@@ -119,11 +119,11 @@ func new_cli_app() *cli.App {
 				},
 			},
 			&cli.BoolFlag{
-				Name:    "gui",
-				Aliases: []string{"g"},
-				Usage:   "make installer gui (fyne-cross required)",
+				Name:    "tui",
+				Aliases: []string{"t"},
+				Usage:   "make installer tui",
 				Action: func(ctx *cli.Context, b bool) error {
-					packer.Gui = b
+					packer.Tui = b
 					return nil
 				},
 			},

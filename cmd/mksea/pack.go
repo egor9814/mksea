@@ -96,7 +96,7 @@ type Packer struct {
 	Password       []byte
 	Platforms      []TargetPlatform
 	ZstdThreads    int
-	Gui            bool
+	Tui            bool
 	Silent         bool
 
 	archiveName string
@@ -288,7 +288,7 @@ func init() {
 		if data, err := p.Meta.Encode(key); err != nil {
 			return err
 		} else {
-			if err := writeBytes("cmd/sea/meta.dat", data); err != nil {
+			if err := writeBytes("cmd/sea/internal/common/meta.dat", data); err != nil {
 				return common.NewContextError("meta info", err)
 			}
 		}
@@ -369,39 +369,10 @@ func init() {
 	return nil
 }
 
-func (p *Packer) lookupFyne() (name string, cross bool, err error) {
-	noFyne := false
-	if len(p.Platforms) == 1 {
-		if platform := p.Platforms[0]; platform.OsName() == runtime.GOOS && platform.ArchName() == runtime.GOARCH {
-			if name, err = exec.LookPath("fyne"); err == nil {
-				return
-			} else {
-				noFyne = true
-			}
-		}
-	}
-	if name, err = exec.LookPath("fyne-cross"); err == nil {
-		cross = true
-		return
-	}
-	if noFyne {
-		err = errors.New("fyne and fyne-cross not found")
-	} else {
-		err = errors.New("fyne-cross not found")
-	}
-	return
-}
-
 func (p *Packer) build() error {
 	var buildFunc func(string, string, TargetPlatform) error
-	if p.Gui {
-		if name, isCross, err := p.lookupFyne(); err != nil {
-			return common.NewContextError("cannot build GUI", err)
-		} else if isCross {
-			buildFunc = p.buildFyneCross(name)
-		} else {
-			buildFunc = p.buildFyne(name)
-		}
+	if p.Tui {
+		buildFunc = p.buildTui
 	} else {
 		buildFunc = p.buildCli
 	}
@@ -438,39 +409,19 @@ func (p *Packer) buildCli(pkg, target string, platform TargetPlatform) error {
 	return runCommand(cmd)
 }
 
-func (p *Packer) buildFyne(fynePath string) func(string, string, TargetPlatform) error {
-	return func(pkg, target string, _ TargetPlatform) error {
-		cmd := exec.Command(
-			fynePath,
-			"build",
-			"-o", target,
-			"-tags", "fyne_gui",
-			pkg,
-		)
-		cmd.Env = os.Environ()
-		cmd.Dir = workInstallerDir
-		return runCommand(cmd)
-	}
-}
-
-func (p *Packer) buildFyneCross(fyneCrossPath string) func(string, string, TargetPlatform) error {
-	return func(pkg, target string, platform TargetPlatform) error {
-		targetName := filepath.Base(target)
-		// TODO: icon
-		cmd := exec.Command(
-			fyneCrossPath,
-			platform.OsName(),
-			"-arch", platform.ArchName(),
-			"-name", targetName,
-			"-app-id", "com.github.egor9814.mksea",
-			"-tags", "fyne_gui",
-			"-no-cache",
-			pkg,
-		)
-		cmd.Env = os.Environ()
-		cmd.Dir = workInstallerDir
-		return runCommand(cmd)
-	}
+func (p *Packer) buildTui(pkg, target string, platform TargetPlatform) error {
+	// TODO: dry
+	cmd := exec.Command(
+		"go",
+		"build",
+		"-v",
+		"-o", target,
+		"-tags", "bubbletea_tui",
+		pkg,
+	)
+	cmd.Dir = workInstallerDir
+	cmd.Env = append(cmd.Env, "GOOS="+platform.OsName(), "GOARCH="+platform.ArchName())
+	return runCommand(cmd)
 }
 
 func (p *Packer) goMod() error {
